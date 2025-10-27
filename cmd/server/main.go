@@ -2,18 +2,19 @@ package main
 
 import (
 	"context"
-	"github.com/1107-adishjain/golang-jwt/internal/config"
-	"github.com/1107-adishjain/golang-jwt/internal/database"
-	"github.com/1107-adishjain/golang-jwt/internal/models"
-	"github.com/1107-adishjain/golang-jwt/internal/routes"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/1107-adishjain/golang-jwt/internal/config"
+	"github.com/1107-adishjain/golang-jwt/internal/database"
+	"github.com/1107-adishjain/golang-jwt/internal/models"
+	"github.com/1107-adishjain/golang-jwt/internal/routes"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // App struct holds the router, database connection, and configuration
@@ -24,6 +25,8 @@ type App struct {
 }
 
 func main() {
+	// Set Gin to release mode to suppress debug logs
+	gin.SetMode(gin.ReleaseMode)
 	cfg := config.LoadConfig()
 
 	db, err := database.DBinitialize(cfg.DatabaseURL)
@@ -32,7 +35,12 @@ func main() {
 	} else {
 		log.Printf("successfully connected to database")
 	}
-	db.AutoMigrate(&models.User{})
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		log.Fatalf("failed to migrate User model: %v", err)
+	} else {
+		log.Printf("Successfully migrated the User Model")
+	}
+
 	// Ensure DB is closed on exit.
 	defer func() {
 		if err := database.DBClose(db); err != nil {

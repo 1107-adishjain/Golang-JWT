@@ -1,22 +1,17 @@
 package controllers
 
 import (
-	// "context"
-	// "fmt"
 	helper "github.com/1107-adishjain/golang-jwt/internal/helpers"
 	"github.com/1107-adishjain/golang-jwt/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	// "log"
 	"net/http"
-	// "strconv"
-	// "time"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // this takes the password text/string and returns the hashed password using bcrypt
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	return string(bytes), err
 }
 

@@ -1,6 +1,6 @@
 # Environment and secrets
 .env
-.env.*
+# .env.*
 # IDE/editor config
 .vscode/
 .idea/
