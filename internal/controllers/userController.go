@@ -4,9 +4,9 @@ import (
 	helper "github.com/1107-adishjain/golang-jwt/internal/helpers"
 	"github.com/1107-adishjain/golang-jwt/internal/models"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"net/http"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // this takes the password text/string and returns the hashed password using bcrypt

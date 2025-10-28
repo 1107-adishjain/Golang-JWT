@@ -13,6 +13,7 @@ import (
 	"github.com/1107-adishjain/golang-jwt/internal/database"
 	"github.com/1107-adishjain/golang-jwt/internal/models"
 	"github.com/1107-adishjain/golang-jwt/internal/routes"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -51,7 +52,11 @@ func main() {
 	}()
 
 	router := gin.Default()
-
+	router.Use(cors.New(cors.Config{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{"Origin", "Authorization", "Content-Type"},
+	}))
 	app := &App{
 		Router: router,
 		DB:     db,
