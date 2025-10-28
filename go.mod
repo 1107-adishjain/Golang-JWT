@@ -10,7 +10,12 @@ require (
 	gorm.io/gorm v1.31.0
 )
 
-require github.com/gin-contrib/cors v1.7.6
+require (
+	github.com/gin-contrib/cors v1.7.6
+	github.com/go-playground/validator v9.31.0+incompatible
+)
+
+require gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 
 require (
 	github.com/bytedance/sonic v1.14.0 // indirect

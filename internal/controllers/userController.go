@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"net/http"
+	"strings"
 	helper "github.com/1107-adishjain/golang-jwt/internal/helpers"
 	"github.com/1107-adishjain/golang-jwt/internal/models"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 // this takes the password text/string and returns the hashed password using bcrypt
@@ -23,22 +25,35 @@ func VerifyPassword(plainPassword, hashedPassword string) error {
 func SignUp(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req struct {
-			Email     string `json:"email"`
-			Password  string `json:"password"`
-			UserType  string `json:"user_type"`
-			FirstName string `json:"first_name"`
+			Email     string `json:"email" validate:"required,email"`
+			Password  string `json:"password" validate:"required,min=8"`
+			UserType  string `json:"user_type" validate:"required,oneof=ADMIN USER"`
+			FirstName string `json:"first_name" validate:"required"`
 			LastName  string `json:"last_name"`
 		}
 		if err := c.BindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 			return
 		}
+		if err := validator.New().Struct(req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "fields are not validated"})
+			return
+		}
 		var existingUser models.User
+		// email should contain @gmail.com
+		if !strings.Contains(req.Email, "@gmail.com") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
+			return
+		}
 		if err := db.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
 			c.JSON(http.StatusConflict, gin.H{"error": "email already in use"})
 			return
 		}
 		// after it is confirmed that the email is not present in the database we hash the password using the HashPassword function
+		if len(req.Password) < 8 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 8 characters"})
+			return
+		}
 		hashedPassword, err := HashPassword(req.Password)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
@@ -63,12 +78,16 @@ func SignUp(db *gorm.DB) gin.HandlerFunc {
 func Login(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
+			Email    string `json:"email" validate:"required,email"`
+			Password string `json:"password" validate:"required,min=8"`
 		}
 		if err := c.BindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 			return
+		}
+		if err :=validator.New().Struct(req); err!=nil{
+			c.JSON(http.StatusBadRequest,gin.H{"error":"fields are not validated"})
+			return 
 		}
 		var user models.User
 		if err := db.Where("email=?", req.Email).First(&user).Error; err != nil {
