@@ -9,4 +9,5 @@ import (
 func AuthRoutes(IncomingRoutes *gin.Engine, db *gorm.DB) {
 	IncomingRoutes.POST("/api/signup", controller.SignUp(db))
 	IncomingRoutes.POST("/api/login", controller.Login(db))
+	IncomingRoutes.POST("/api/google-login", controller.GoogleLogin(db))
 }
