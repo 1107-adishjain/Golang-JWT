@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 	helper "github.com/1107-adishjain/golang-jwt/internal/helpers"
 	"github.com/1107-adishjain/golang-jwt/internal/models"
 	"github.com/gin-gonic/gin"
@@ -40,20 +39,11 @@ func SignUp(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		var existingUser models.User
-		// email should contain @gmail.com
-		if !strings.Contains(req.Email, "@gmail.com") {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
-			return
-		}
 		if err := db.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
 			c.JSON(http.StatusConflict, gin.H{"error": "email already in use"})
 			return
 		}
 		// after it is confirmed that the email is not present in the database we hash the password using the HashPassword function
-		if len(req.Password) < 8 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 8 characters"})
-			return
-		}
 		hashedPassword, err := HashPassword(req.Password)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
