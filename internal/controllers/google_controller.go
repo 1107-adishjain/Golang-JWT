@@ -44,9 +44,10 @@ func GoogleCallback(db *gorm.DB) gin.HandlerFunc{
 		}
 
 		// now get the user details from user Info map[string]interface{}
-		email:= userInfo["email"].(string)
-		firstName:= userInfo["given_name"].(string)
-		lastName:= userInfo["family_name"].(string)
+		email:= userInfo.Email
+		firstName:= userInfo.GivenName
+		lastName:= userInfo.FamilyName
+
 		// check if the user already exists in the database
 		var user models.User		
 		if err:= db.Where("email = ?", email).First(&user).Error; err!= nil{
@@ -62,9 +63,26 @@ func GoogleCallback(db *gorm.DB) gin.HandlerFunc{
 				return
 			}
 		}
+
+		// now generate a jwt token for the user
+		accessToken, refreshToken, err:= helper.GenerateJWT(user.UserID, user.UserType, user.FirstName, user.LastName)
+		if err!= nil{
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate jwt token"})
+			return
+		}
+		c.SetCookie(
+			"refresh_token",
+			refreshToken,
+			7*24*60,
+			"",
+			"/",
+			false,
+			true,
+		)
+
+		c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "user_id": user.UserID, "user_type": user.UserType, "first_name": user.FirstName, "last_name": user.LastName})
 	}
 }
 
 
 
-// entire code revision for google oauth login flow completed!!!!
