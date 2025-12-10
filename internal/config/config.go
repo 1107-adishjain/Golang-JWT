@@ -14,6 +14,9 @@ import (
 type Config struct {
 	Port        string
 	DatabaseURL string
+	Client_ID    string
+	Client_Secret string
+	Redirect_URI  string
 }
 
 // Load .env file on package initialization
@@ -33,5 +36,8 @@ func LoadConfig() *Config {
 	return &Config{
 		Port:        getEnv("PORT", "8080"),
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://user:pass@localhost:5432/dbname"),
+		Client_ID:    getEnv("client_id", ""),
+		Client_Secret: getEnv("client_secret", ""),
+		Redirect_URI:  getEnv("redirect_uri", ""),
 	}
 }
