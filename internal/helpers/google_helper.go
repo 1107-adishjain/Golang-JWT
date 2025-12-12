@@ -1,8 +1,12 @@
 package helpers
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"io"
+	"math/big"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,7 +14,34 @@ import (
 	"github.com/1107-adishjain/golang-jwt/internal/config"
 )
 
-func GetGoogleOAuthURL(cfg *config.Config) string {
+// Generate a random code_verifier for PKCE
+func GenerateCodeVerifier() (string, error) {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~"
+	length := 64
+	b := make([]byte, length)
+	for i := range b {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			return "", err
+		}
+		b[i] = charset[num.Int64()]
+	}
+	return string(b), nil
+}
+
+// Create a code_challenge from code_verifier
+func GenerateCodeChallenge(verifier string) string {
+	h := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(h[:])
+}
+
+// Returns the Google OAuth URL and the code_verifier
+func GetGoogleOAuthURL(cfg *config.Config) (string, string, error) {
+	codeVerifier, err := GenerateCodeVerifier()
+	if err != nil {
+		return "", "", err
+	}
+	codeChallenge := GenerateCodeChallenge(codeVerifier)
 	base := "https://accounts.google.com/o/oauth2/v2/auth"
 	params := url.Values{}
 	params.Add("client_id", cfg.Client_ID)
@@ -18,12 +49,12 @@ func GetGoogleOAuthURL(cfg *config.Config) string {
 	params.Add("response_type", "code")
 	params.Add("scope", "openid email profile")
 	params.Add("state", "random_state_string")
-	params.Add("code_challenge", "CODE_CHALLENGE")
+	params.Add("code_challenge", codeChallenge)
 	params.Add("code_challenge_method", "S256")
-	return base + "?" + params.Encode()
+	return base + "?" + params.Encode(), codeVerifier, nil
 }
 
-func ExchangeCodeForTokens(code string, cfg *config.Config) (string, string, string, error) {
+func ExchangeCodeForTokens(code string, codeVerifier string, cfg *config.Config) (string, string, string, error) {
 	// here we will make a post request to google oauth2 token endpoint
 	// to exchange the code for access token and id token
 
@@ -34,7 +65,7 @@ func ExchangeCodeForTokens(code string, cfg *config.Config) (string, string, str
 	data.Set("client_secret", cfg.Client_Secret)
 	data.Set("redirect_uri", cfg.Redirect_URI)
 	data.Set("grant_type", "authorization_code")
-	data.Set("code_verifier", "CODE_VERIFIER")
+	data.Set("code_verifier", codeVerifier)
 
 	req, err := http.NewRequest("POST", endpoint, strings.NewReader(data.Encode()))
 	if err != nil {

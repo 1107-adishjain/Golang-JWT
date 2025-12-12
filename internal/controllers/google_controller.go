@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+
 	"github.com/1107-adishjain/golang-jwt/internal/config"
 	helper "github.com/1107-adishjain/golang-jwt/internal/helpers"
 	"github.com/1107-adishjain/golang-jwt/internal/models"
@@ -9,64 +10,65 @@ import (
 	"gorm.io/gorm"
 )
 
-func GoogleLogin(db *gorm.DB) gin.HandlerFunc{
-	return func(c *gin.Context){
-		// we will first redirect to the google oauth consent screen
-		c.JSON(http.StatusOK, gin.H{"message": "Redirecting to Google consent screen"})
-
-		url:= helper.GetGoogleOAuthURL(config.LoadConfig())
-
-		// after we get the url we redirect the user to the google oauth consent screen
+func GoogleLogin(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		url, codeVerifier, err := helper.GetGoogleOAuthURL(config.LoadConfig())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate PKCE code verifier"})
+			return
+		}
+		// Store code_verifier in a secure cookie for the callback
+		c.SetCookie("code_verifier", codeVerifier, 300, "/", "", false, true)
 		c.Redirect(http.StatusFound, url)
-	}  
+	}
 }
 
-
-func GoogleCallback(db *gorm.DB) gin.HandlerFunc{
-	return func(c *gin.Context){
+func GoogleCallback(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		// after the user consents we will get the code from the query params
-		code:= c.Query("code")
-
-		// now we should exchange the code for the access token and id token
-		// now we will create a helper function which will exchange the code for the tokens
-		access_token, _,_ ,err:= helper.ExchangeCodeForTokens(code, config.LoadConfig())
-
-		if err!= nil{
+		code := c.Query("code")
+		codeVerifier, err := c.Cookie("code_verifier")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "missing code_verifier for PKCE"})
+			return
+		}
+		access_token, _, _, err := helper.ExchangeCodeForTokens(code, codeVerifier, config.LoadConfig())
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to exchange code for tokens"})
 			return
 		}
 
 		// then after this we will usee the access token to get the user info from google
-		userInfo, err:= helper.GetUserInfoFromGoogle(access_token)
-		if err!= nil{
+		userInfo, err := helper.GetUserInfoFromGoogle(access_token)
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user info from google"})
 			return
 		}
 
 		// now get the user details from user Info map[string]interface{}
-		email:= userInfo.Email
-		firstName:= userInfo.GivenName
-		lastName:= userInfo.FamilyName
+		email := userInfo.Email
+		firstName := userInfo.GivenName
+		lastName := userInfo.FamilyName
 
 		// check if the user already exists in the database
-		var user models.User		
-		if err:= db.Where("email = ?", email).First(&user).Error; err!= nil{
+		var user models.User
+		if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 			// if user does not exist create a new user
-			user= models.User{
-				Email: email,
+			user = models.User{
+				Email:     email,
 				FirstName: firstName,
-				LastName: lastName,
-				UserType: "USER",
+				LastName:  lastName,
+				UserType:  "USER",
 			}
-			if err:= db.Create(&user).Error; err!= nil{
+			if err := db.Create(&user).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
 				return
 			}
 		}
 
 		// now generate a jwt token for the user
-		accessToken, refreshToken, err:= helper.GenerateJWT(user.UserID, user.UserType, user.FirstName, user.LastName)
-		if err!= nil{
+		accessToken, refreshToken, err := helper.GenerateJWT(user.UserID, user.UserType, user.FirstName, user.LastName)
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate jwt token"})
 			return
 		}
@@ -83,6 +85,3 @@ func GoogleCallback(db *gorm.DB) gin.HandlerFunc{
 		c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "user_id": user.UserID, "user_type": user.UserType, "first_name": user.FirstName, "last_name": user.LastName})
 	}
 }
-
-
-
