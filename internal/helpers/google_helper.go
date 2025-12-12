@@ -16,7 +16,7 @@ import (
 
 // Generate a random code_verifier for PKCE
 func GenerateCodeVerifier() (string, error) {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~"
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~" //set of allowed characters 
 	length := 64
 	b := make([]byte, length)
 	for i := range b {

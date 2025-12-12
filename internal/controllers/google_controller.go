@@ -18,7 +18,7 @@ func GoogleLogin(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		// Store code_verifier in a secure cookie for the callback
-		c.SetCookie("code_verifier", codeVerifier, 300, "/", "", false, true)
+		c.SetCookie("code_verifier", codeVerifier, 300, "", "/", true, true)
 		c.Redirect(http.StatusFound, url)
 	}
 }

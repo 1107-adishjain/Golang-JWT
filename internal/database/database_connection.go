@@ -7,7 +7,6 @@ import (
 )
 
 // DBinitialize opens a GORM DB using the provided URL/DSN and returns the *gorm.DB handle.
-// It returns an error if opening the connection fails.
 func DBinitialize(url string) (*gorm.DB, error) {
 	gdb, err := gorm.Open(postgres.Open(url), &gorm.Config{})
 	if err != nil {
@@ -17,7 +16,6 @@ func DBinitialize(url string) (*gorm.DB, error) {
 }
 
 // DBClose closes the underlying *sql.DB for the given *gorm.DB.
-// Returns an error if obtaining the underlying *sql.DB fails or Close fails.
 func DBClose(gdb *gorm.DB) error {
 	sqlDB, err := gdb.DB()
 	if err != nil {
